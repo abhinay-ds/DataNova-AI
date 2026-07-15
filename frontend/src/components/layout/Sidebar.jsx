@@ -9,7 +9,7 @@ import {
 
 export default function Sidebar() {
   return (
-    <aside className="w-64 bg-slate-900 text-white flex flex-col">
+    <aside className="w-72 bg-slate-900 text-white flex flex-col">
 
       {/* Logo */}
       <div className="border-b border-slate-700 p-6">
