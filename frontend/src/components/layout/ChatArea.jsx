@@ -1,81 +1,175 @@
 import {
   BarChart3,
-  Database,
   BrainCircuit,
+  Database,
   FileSpreadsheet,
   Sparkles,
 } from "lucide-react";
 
+import { useChat } from "../../context/ChatContext";
+import ChatMessages from "../chat/ChatMessages";
+
+
 const suggestions = [
   {
-    icon: <FileSpreadsheet size={22} />,
-    title: "Analyze CSV / Excel",
-    description: "Upload your dataset and explore it instantly.",
+    icon: FileSpreadsheet,
+    title: "Analyze a dataset",
+    description:
+      "Upload CSV, Excel or JSON and get an instant profile.",
+    prompt: "Give me an overview of my dataset",
   },
   {
-    icon: <BarChart3 size={22} />,
-    title: "Generate Visualizations",
-    description: "Create charts and graphs automatically.",
+    icon: BarChart3,
+    title: "Create a visualization",
+    description:
+      "Ask for charts, distributions, trends or relationships.",
+    prompt: "Create a useful visualization of my dataset",
   },
   {
-    icon: <BrainCircuit size={22} />,
-    title: "Train Machine Learning Models",
-    description: "Build predictive models with one click.",
+    icon: BrainCircuit,
+    title: "Train a model",
+    description:
+      "Build, evaluate and compare machine learning models.",
+    prompt: "Train a suitable machine learning model on my dataset",
   },
   {
-    icon: <Database size={22} />,
-    title: "Connect SQL Database",
-    description: "Analyze live database tables using AI.",
+    icon: Database,
+    title: "Query your data",
+    description:
+      "Ask natural-language questions about any loaded dataset.",
+    prompt: "Give me some useful insights from my dataset",
   },
 ];
 
-export default function ChatArea() {
+
+function sendPrompt(prompt) {
+  window.dispatchEvent(
+    new CustomEvent("datanova:prompt", {
+      detail: prompt,
+    })
+  );
+}
+
+
+function isInitialMessage(message) {
+  if (!message) return false;
+
+  const text = String(
+    message.text ||
+    message.content ||
+    ""
+  ).toLowerCase();
+
   return (
-    <div className="flex-1 overflow-auto bg-slate-50 px-16 py-12">
+    text.includes("hello! i'm datanova") ||
+    text.includes("upload a dataset") ||
+    text.includes("uploaded successfully") ||
+    text.includes("dataset is ready")
+  );
+}
 
-      <div className="mx-auto max-w-4xl">
 
-        <div className="text-center">
+export default function ChatArea() {
+  const { messages = [] } = useChat();
 
-          <Sparkles
-            className="mx-auto mb-4 text-blue-600"
-            size={42}
-          />
+  /*
+   * Keep the polished welcome workspace visible when the only
+   * messages are the automatic welcome/upload messages.
+   *
+   * Once the user actually asks a question, ChatMessages takes over.
+   */
 
-          <h1 className="text-5xl font-bold text-slate-900">
-            DataNova AI
+  const hasRealConversation = messages.some(
+    (message) =>
+      !isInitialMessage(message) &&
+      message?.sender !== "system"
+  );
+
+
+  if (hasRealConversation) {
+    return (
+      <div className="chat-area chat-area-conversation">
+        <ChatMessages />
+      </div>
+    );
+  }
+
+
+  return (
+    <div className="chat-area">
+
+      <div className="workspace-welcome">
+
+        {/* ================================================
+            WELCOME HEADER
+            ================================================ */}
+
+        <div className="workspace-welcome-header">
+
+          <div className="workspace-ai-pill">
+            <Sparkles size={15} />
+            <span>DataNova AI</span>
+          </div>
+
+
+          <h1>
+            What will you
+            <br />
+            <span>discover today?</span>
           </h1>
 
-          <p className="mt-3 text-lg text-slate-500">
-            Analyze • Visualize • Predict
-          </p>
 
-          <p className="mt-8 text-2xl font-semibold text-slate-700">
-            What would you like to analyze today?
+          <p>
+            Analyze, visualize and predict from your data
+            <br className="desktop-break" />
+            using natural language.
           </p>
 
         </div>
 
-        <div className="mt-14 grid grid-cols-2 gap-6">
 
-          {suggestions.map((item) => (
-            <button
-              key={item.title}
-              className="rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-blue-400 hover:shadow-lg"
-            >
-              <div className="mb-4 text-blue-600">
-                {item.icon}
-              </div>
+        {/* ================================================
+            QUICK ACTION CARDS
+            ================================================ */}
 
-              <h3 className="font-semibold text-lg">
-                {item.title}
-              </h3>
+        <div className="workspace-suggestion-grid">
 
-              <p className="mt-2 text-sm text-slate-500">
-                {item.description}
-              </p>
-            </button>
-          ))}
+          {suggestions.map(
+            ({
+              icon: Icon,
+              title,
+              description,
+              prompt,
+            }) => (
+
+              <button
+                key={title}
+                type="button"
+                className="workspace-suggestion-card"
+                onClick={() => sendPrompt(prompt)}
+              >
+
+                <div className="workspace-suggestion-icon">
+                  <Icon size={21} />
+                </div>
+
+
+                <div className="workspace-suggestion-content">
+
+                  <h3>
+                    {title}
+                  </h3>
+
+                  <p>
+                    {description}
+                  </p>
+
+                </div>
+
+              </button>
+
+            )
+          )}
 
         </div>
 

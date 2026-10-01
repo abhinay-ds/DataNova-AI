@@ -1,0 +1,446 @@
+import { useState } from "react";
+
+import {
+  BarChart3,
+  Check,
+  Copy,
+  Download,
+  ExternalLink,
+  Maximize2,
+  Sparkles,
+} from "lucide-react";
+
+export default function ChartCard({ data }) {
+  const [copied, setCopied] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  if (!data) {
+    return null;
+  }
+
+  // =========================================================
+  // CHART PATH
+  // =========================================================
+
+  const chartPath =
+    data.chart_path ||
+    data.path ||
+    data.url;
+
+  if (!chartPath) {
+    return null;
+  }
+
+  // =========================================================
+  // EXTRACT FILENAME
+  // =========================================================
+
+  const filename = String(chartPath)
+    .replace(/\\/g, "/")
+    .split("/")
+    .pop();
+
+  if (!filename) {
+    return null;
+  }
+
+  // =========================================================
+  // BUILD CHART URL
+  // =========================================================
+
+  const chartUrl = String(chartPath).startsWith("http")
+    ? chartPath
+    : `http://127.0.0.1:8000/charts/${filename}`;
+
+  // =========================================================
+  // CHART TYPE
+  // =========================================================
+
+  const chartType = String(
+    data.chart_type || "chart"
+  ).toLowerCase();
+
+  const titleMap = {
+    scatter: "Scatter Plot",
+    histogram: "Histogram",
+    bar: "Bar Chart",
+    bar_chart: "Bar Chart",
+    line: "Line Chart",
+    line_chart: "Line Chart",
+    pie: "Pie Chart",
+    pie_chart: "Pie Chart",
+    boxplot: "Box Plot",
+    heatmap: "Heatmap",
+    correlation: "Correlation Heatmap",
+    smart_chart: "Smart Chart",
+  };
+
+  const title =
+    data.title ||
+    titleMap[chartType] ||
+    "Generated Chart";
+
+  // =========================================================
+  // CHART TYPE LABEL
+  // =========================================================
+
+  const chartTypeLabel =
+    titleMap[chartType] || "Chart";
+
+  // =========================================================
+  // COPY CHART LINK
+  // =========================================================
+
+  const copyImageLink = async () => {
+    try {
+      await navigator.clipboard.writeText(chartUrl);
+
+      setCopied(true);
+
+      setTimeout(() => {
+        setCopied(false);
+      }, 1500);
+    } catch (error) {
+      console.error(
+        "Unable to copy chart link:",
+        error
+      );
+    }
+  };
+
+  // =========================================================
+  // CHART INFORMATION
+  // =========================================================
+
+  const info = [
+    data.x && ["X axis", data.x],
+    data.y && ["Y axis", data.y],
+    data.aggregation && [
+      "Aggregation",
+      data.aggregation,
+    ],
+    data.column && [
+      "Column",
+      data.column,
+    ],
+  ].filter(Boolean);
+
+  // =========================================================
+  // AI INSIGHT
+  // =========================================================
+
+  const aiInsight =
+    data.ai_insight ||
+    data.insight ||
+    data.aiInsight;
+
+  // =========================================================
+  // VALUES
+  // =========================================================
+
+  const hasValues =
+    data.values &&
+    typeof data.values === "object" &&
+    Object.keys(data.values).length > 0;
+
+  return (
+    <div className="chart-card mt-4 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
+
+      <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-4 sm:px-5 dark:border-slate-800">
+
+        <div className="flex min-w-0 items-center gap-3">
+
+          {/* Chart icon */}
+
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
+            <BarChart3 size={19} />
+          </div>
+
+          {/* Title */}
+
+          <div className="min-w-0">
+
+            <div className="flex flex-wrap items-center gap-2">
+
+              <h3 className="truncate text-sm font-semibold text-slate-900 sm:text-base dark:text-slate-100">
+                {title}
+              </h3>
+
+              <span className="hidden rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-blue-600 sm:inline-flex dark:border-blue-900 dark:bg-blue-950/50 dark:text-blue-400">
+                {chartTypeLabel}
+              </span>
+
+            </div>
+
+            <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+              Generated by DataNova AI
+            </p>
+
+          </div>
+
+        </div>
+
+        {/* =================================================
+            ACTIONS
+        ================================================= */}
+
+        <div className="flex shrink-0 items-center gap-1">
+
+          {/* Copy */}
+
+          <button
+            onClick={copyImageLink}
+            className="chart-action flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+            title={
+              copied
+                ? "Copied"
+                : "Copy chart link"
+            }
+            aria-label={
+              copied
+                ? "Chart link copied"
+                : "Copy chart link"
+            }
+            type="button"
+          >
+            {copied ? (
+              <Check size={15} />
+            ) : (
+              <Copy size={15} />
+            )}
+          </button>
+
+          {/* Open */}
+
+          <a
+            href={chartUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="chart-action flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+            title="Open chart"
+            aria-label="Open chart"
+          >
+            <ExternalLink size={15} />
+          </a>
+
+          {/* Fullscreen */}
+
+          <a
+            href={chartUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="chart-action hidden h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-blue-600 sm:flex dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+            title="Open fullscreen"
+            aria-label="Open fullscreen"
+          >
+            <Maximize2 size={15} />
+          </a>
+
+          {/* Download */}
+
+          <a
+            href={chartUrl}
+            download
+            className="chart-action flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+            title="Download chart"
+            aria-label="Download chart"
+          >
+            <Download size={15} />
+          </a>
+
+        </div>
+      </div>
+
+      {/* =====================================================
+          CONTENT
+      ===================================================== */}
+
+      <div className="p-3 sm:p-5">
+
+        {/* ===================================================
+            CHART
+        =================================================== */}
+
+        <div className="chart-frame relative overflow-hidden rounded-xl border border-slate-100 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-950">
+
+          {!imageError ? (
+            <img
+              src={chartUrl}
+              alt={title}
+              onError={() => setImageError(true)}
+              className="block h-auto max-h-[520px] w-full rounded-lg object-contain"
+            />
+          ) : (
+            <div className="flex min-h-[280px] flex-col items-center justify-center px-6 text-center">
+
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-500 dark:bg-red-950/40 dark:text-red-400">
+                <BarChart3 size={21} />
+              </div>
+
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                Unable to load this chart
+              </p>
+
+              <p className="mt-1 max-w-sm text-xs leading-5 text-slate-500 dark:text-slate-400">
+                The analysis was generated, but the chart image
+                could not be loaded.
+              </p>
+
+              <a
+                href={chartUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-700"
+              >
+                Open chart
+              </a>
+
+            </div>
+          )}
+
+        </div>
+
+        {/* ===================================================
+            AI INSIGHT
+        =================================================== */}
+
+        {aiInsight && (
+          <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50/60 p-4 dark:border-blue-900/60 dark:bg-blue-950/20">
+
+            <div className="flex items-start gap-3">
+
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/60 dark:text-blue-400">
+                <Sparkles size={17} />
+              </div>
+
+              <div className="min-w-0">
+
+                <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  DataNova Insight
+                </h4>
+
+                <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                  Automatically generated from the analysis
+                </p>
+
+              </div>
+
+            </div>
+
+            <p className="mt-3 text-sm leading-6 text-slate-700 dark:text-slate-300">
+              {aiInsight}
+            </p>
+
+          </div>
+        )}
+
+        {/* ===================================================
+            CHART INFORMATION
+        =================================================== */}
+
+        {info.length > 0 && (
+          <div className="mt-4">
+
+            <div className="mb-2 flex items-center gap-2">
+
+              <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
+
+              <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                Chart details
+              </span>
+
+              <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
+
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+
+              {info.map(([label, value]) => (
+                <div
+                  key={label}
+                  className="min-w-0 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-950"
+                >
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                    {label}
+                  </p>
+
+                  <p
+                    className="mt-1 truncate text-xs font-semibold text-slate-700 dark:text-slate-200"
+                    title={String(value)}
+                  >
+                    {String(value)}
+                  </p>
+                </div>
+              ))}
+
+            </div>
+
+          </div>
+        )}
+
+        {/* ===================================================
+            CALCULATED VALUES
+        =================================================== */}
+
+        {hasValues && (
+          <div className="mt-4">
+
+            <details className="group">
+
+              <summary className="flex cursor-pointer select-none items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-600 transition hover:border-blue-200 hover:text-blue-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-blue-900 dark:hover:text-blue-400">
+
+                <span>
+                  View calculated values
+                </span>
+
+                <span className="text-[10px] font-normal text-slate-400">
+                  {Object.keys(data.values).length} values
+                </span>
+
+              </summary>
+
+              <div className="mt-2 overflow-hidden rounded-xl border border-slate-100 dark:border-slate-800">
+
+                <div className="max-h-56 overflow-y-auto">
+
+                  {Object.entries(data.values).map(
+                    ([key, value]) => (
+                      <div
+                        key={key}
+                        className="flex items-center justify-between gap-4 border-b border-slate-100 px-4 py-2.5 text-xs last:border-b-0 dark:border-slate-800"
+                      >
+
+                        <span
+                          className="min-w-0 truncate font-medium text-slate-600 dark:text-slate-300"
+                          title={String(key)}
+                        >
+                          {key}
+                        </span>
+
+                        <span className="shrink-0 font-semibold text-slate-900 dark:text-slate-100">
+                          {typeof value === "number"
+                            ? Number(value.toFixed(4))
+                            : String(value)}
+                        </span>
+
+                      </div>
+                    )
+                  )}
+
+                </div>
+
+              </div>
+
+            </details>
+
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}

@@ -1,46 +1,145 @@
 import {
   Bell,
-  Moon,
   ChevronDown,
-  CircleUserRound,
+  Moon,
+  PanelLeft,
+  PanelRight,
+  Search,
+  Sun,
 } from "lucide-react";
 
-export default function Navbar() {
+import { useNavigate } from "react-router-dom";
+
+import { useTheme } from "../../context/ThemeContext";
+
+
+export default function Navbar({
+  onToggleSidebar,
+  datasetOpen,
+  onToggleDataset,
+}) {
+  const navigate = useNavigate();
+
+  const {
+    theme,
+    setTheme,
+  } = useTheme();
+
+
+  const toggleTheme = () => {
+    setTheme(
+      theme === "dark"
+        ? "light"
+        : "dark"
+    );
+  };
+
+
   return (
-    <header className="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between">
+    <header className="topbar">
 
-      {/* Workspace */}
-      <div className="flex items-center gap-2">
+      <div className="topbar-left">
 
-        <h2 className="font-semibold text-lg">
-          Workspace
-        </h2>
+        <button
+          type="button"
+          className="icon-button navbar-sidebar-toggle"
+          onClick={onToggleSidebar}
+          aria-label="Toggle sidebar"
+        >
+          <PanelLeft size={18} />
+        </button>
 
-        <ChevronDown size={18} />
+
+        <div className="breadcrumb">
+
+          <span className="muted">
+            Workspace
+          </span>
+
+          <ChevronDown size={13} />
+
+          <strong>
+            Data analysis
+          </strong>
+
+        </div>
 
       </div>
 
-      {/* Right Side */}
 
-      <div className="flex items-center gap-6">
+      <div className="topbar-actions">
 
-        <button className="hover:text-blue-600 transition">
-          <Moon size={20} />
-        </button>
+        <button
+          type="button"
+          className="search-pill"
+          onClick={() =>
+            navigate("/workspace")
+          }
+        >
+          <Search size={15} />
 
-        <button className="hover:text-blue-600 transition">
-          <Bell size={20} />
-        </button>
-
-        <div className="flex items-center gap-2">
-
-          <CircleUserRound size={30} />
-
-          <span className="font-medium">
-            Guest
+          <span>
+            Ask DataNova
           </span>
 
-        </div>
+          <kbd>
+            ⌘ K
+          </kbd>
+        </button>
+
+
+        <button
+          type="button"
+          className="icon-button"
+          onClick={toggleTheme}
+          aria-label="Toggle theme"
+          title="Toggle theme"
+        >
+          {theme === "dark" ? (
+            <Moon size={18} />
+          ) : (
+            <Sun size={18} />
+          )}
+        </button>
+
+
+        <button
+          type="button"
+          className="icon-button"
+          aria-label="Notifications"
+        >
+          <Bell size={18} />
+        </button>
+
+
+        <button
+          type="button"
+          className="dataset-toggle"
+          onClick={onToggleDataset}
+        >
+          {datasetOpen ? (
+            <PanelRight size={16} />
+          ) : (
+            <PanelLeft size={16} />
+          )}
+
+          <span>
+            {datasetOpen
+              ? "Hide data"
+              : "Show data"}
+          </span>
+        </button>
+
+
+        <button
+          type="button"
+          className="avatar-button"
+          onClick={() =>
+            navigate("/settings")
+          }
+        >
+          G
+        </button>
 
       </div>
 

@@ -1,81 +1,294 @@
+import { motion } from "framer-motion";
+
 import {
-  Plus,
+  CheckSquare,
   Database,
   FileBarChart2,
-  CheckSquare,
-  Settings,
+  LayoutDashboard,
   MessageSquare,
+  Plus,
+  Settings,
+  Sparkles,
+  X,
 } from "lucide-react";
 
-export default function Sidebar() {
+import {
+  NavLink,
+  useNavigate,
+} from "react-router-dom";
+
+import BrandLogo from "../BrandLogo";
+
+
+const primary = [
+  {
+    to: "/dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    to: "/workspace",
+    label: "AI Workspace",
+    icon: Sparkles,
+  },
+  {
+    to: "/datasets",
+    label: "Datasets",
+    icon: Database,
+  },
+  {
+    to: "/reports",
+    label: "Reports",
+    icon: FileBarChart2,
+  },
+  {
+    to: "/tasks",
+    label: "Tasks",
+    icon: CheckSquare,
+  },
+];
+
+
+const recent = [
+  "Titanic Analysis",
+  "Customer Churn",
+  "Sales Dashboard",
+];
+
+
+export default function Sidebar({
+  collapsed = false,
+  onToggle,
+}) {
+  const navigate = useNavigate();
+
+  const mobileClose = () => {
+    if (
+      typeof window !== "undefined" &&
+      window.innerWidth <= 768 &&
+      onToggle
+    ) {
+      onToggle();
+    }
+  };
+
+  const goTo = (path) => {
+    navigate(path);
+    mobileClose();
+  };
+
+
   return (
-    <aside className="w-72 bg-slate-900 text-white flex flex-col">
+    <>
+      {!collapsed && (
+        <button
+          type="button"
+          className="sidebar-mobile-overlay"
+          onClick={onToggle}
+          aria-label="Close navigation"
+        />
+      )}
 
-      {/* Logo */}
-      <div className="border-b border-slate-700 p-6">
-        <h1 className="text-2xl font-bold text-blue-400">
-          DataNova AI
-        </h1>
-      </div>
+      <motion.aside
+        animate={{
+          width: collapsed ? 72 : 250,
+        }}
+        transition={{
+          duration: 0.2,
+          ease: "easeOut",
+        }}
+        className={`sidebar ${
+          collapsed
+            ? "is-collapsed"
+            : "is-expanded"
+        }`}
+      >
 
-      {/* New Chat */}
-      <div className="p-4">
-        <button className="flex w-full items-center gap-3 rounded-xl bg-blue-600 px-4 py-3 hover:bg-blue-700 transition">
-          <Plus size={20} />
-          New Chat
-        </button>
-      </div>
+        {/* BRAND */}
 
-      {/* Recent Chats */}
-      <div className="flex-1 px-4">
-        <p className="mb-3 text-xs uppercase text-slate-400">
-          Recent Chats
-        </p>
+        <div className="sidebar-brand">
 
-        <div className="space-y-2">
+          {!collapsed ? (
+            <>
+              <button
+                type="button"
+                className="sidebar-logo-button"
+                onClick={() =>
+                  goTo("/workspace")
+                }
+                aria-label="DataNova AI"
+              >
+                <BrandLogo />
+              </button>
 
-          <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-800">
-            <MessageSquare size={18} />
-            Titanic Analysis
-          </button>
-
-          <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-800">
-            <MessageSquare size={18} />
-            Customer Churn
-          </button>
-
-          <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-800">
-            <MessageSquare size={18} />
-            Sales Dashboard
-          </button>
+              <button
+                type="button"
+                className="sidebar-mobile-close"
+                onClick={onToggle}
+                aria-label="Close navigation"
+              >
+                <X size={18} />
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="brand-mark"
+              onClick={() =>
+                goTo("/workspace")
+              }
+              aria-label="DataNova AI"
+            >
+              <Sparkles size={19} />
+            </button>
+          )}
 
         </div>
-      </div>
 
-      {/* Bottom Menu */}
-      <div className="border-t border-slate-700 p-4 space-y-2">
 
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-800">
-          <Database size={18} />
-          Workspace
+        {/* NEW ANALYSIS */}
+
+        <button
+          type="button"
+          className="new-chat"
+          onClick={() =>
+            goTo("/workspace")
+          }
+        >
+          <Plus size={18} />
+
+          {!collapsed && (
+            <span>
+              New analysis
+            </span>
+          )}
         </button>
 
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-800">
-          <FileBarChart2 size={18} />
-          Reports
-        </button>
 
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-800">
-          <CheckSquare size={18} />
-          Tasks
-        </button>
+        {/* NAVIGATION */}
 
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-800">
-          <Settings size={18} />
-          Settings
-        </button>
+        <nav
+          className="sidebar-nav"
+          aria-label="Main navigation"
+        >
 
-      </div>
-    </aside>
+          {!collapsed && (
+            <p className="nav-label">
+              Workspace
+            </p>
+          )}
+
+          {primary.map(
+            ({
+              to,
+              label,
+              icon: Icon,
+            }) => (
+              <NavLink
+                key={to}
+                to={to}
+                onClick={mobileClose}
+                className={({ isActive }) =>
+                  `nav-item ${
+                    isActive
+                      ? "active"
+                      : ""
+                  }`
+                }
+                title={
+                  collapsed
+                    ? label
+                    : undefined
+                }
+              >
+                <Icon size={18} />
+
+                {!collapsed && (
+                  <span>
+                    {label}
+                  </span>
+                )}
+              </NavLink>
+            )
+          )}
+
+
+          {!collapsed && (
+            <p className="nav-label recent-label">
+              Recent chats
+            </p>
+          )}
+
+          {recent.map((item) => (
+            <button
+              key={item}
+              type="button"
+              className="recent-item"
+              onClick={() =>
+                goTo("/workspace")
+              }
+            >
+              <MessageSquare size={16} />
+
+              {!collapsed && (
+                <span>
+                  {item}
+                </span>
+              )}
+            </button>
+          ))}
+
+        </nav>
+
+
+        {/* BOTTOM */}
+
+        <div className="sidebar-bottom">
+
+          <NavLink
+            to="/settings"
+            onClick={mobileClose}
+            className={({ isActive }) =>
+              `nav-item ${
+                isActive
+                  ? "active"
+                  : ""
+              }`
+            }
+          >
+            <Settings size={18} />
+
+            {!collapsed && (
+              <span>
+                Settings
+              </span>
+            )}
+          </NavLink>
+
+
+          {!collapsed && (
+            <div className="profile-card">
+
+              <div className="avatar">
+                G
+              </div>
+
+              <div>
+                <strong>
+                  Guest workspace
+                </strong>
+
+                <span>
+                  Free session
+                </span>
+              </div>
+
+            </div>
+          )}
+
+        </div>
+
+      </motion.aside>
+    </>
   );
 }

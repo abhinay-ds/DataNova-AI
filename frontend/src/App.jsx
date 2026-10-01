@@ -1,7 +1,138 @@
-import Dashboard from "./pages/Dashboard";
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+} from "react-router-dom";
 
-function App() {
-  return <Dashboard />;
+import { useAuth } from "./context/AuthContext";
+
+import Landing from "./pages/Landing";
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import Workspace from "./pages/Workspace";
+import Datasets from "./pages/Datasets";
+import Reports from "./pages/Reports";
+import Tasks from "./pages/Tasks";
+import Settings from "./pages/Settings";
+
+function ProtectedRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="app-loading">
+        <div className="app-loading-spinner" />
+        <span>Restoring your workspace...</span>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
 }
 
-export default App;
+function PublicAuthRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="app-loading">
+        <div className="app-loading-spinner" />
+        <span>Loading...</span>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+
+        {/* Public */}
+        <Route path="/" element={<Landing />} />
+
+        <Route
+          path="/login"
+          element={
+            <PublicAuthRoute>
+              <Login />
+            </PublicAuthRoute>
+          }
+        />
+
+        {/* Protected application */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/workspace"
+          element={
+            <ProtectedRoute>
+              <Workspace />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/datasets"
+          element={
+            <ProtectedRoute>
+              <Datasets />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <Reports />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/tasks"
+          element={
+            <ProtectedRoute>
+              <Tasks />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Unknown route */}
+        <Route
+          path="*"
+          element={<Navigate to="/" replace />}
+        />
+
+      </Routes>
+    </BrowserRouter>
+  );
+}

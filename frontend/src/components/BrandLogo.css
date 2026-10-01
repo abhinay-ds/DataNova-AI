@@ -1,0 +1,34 @@
+/* =========================================================
+   DATANOVA AI — REAL LOGO
+   ========================================================= */
+
+.datanova-brand-logo {
+  display: block;
+
+  width: 205px;
+  height: auto;
+
+  max-width: 100%;
+
+  object-fit: contain;
+  object-position: left center;
+
+  flex-shrink: 0;
+}
+
+
+/* Sidebar */
+
+.sidebar .datanova-brand-logo {
+  width: 205px;
+  height: auto;
+}
+
+
+/* Mobile */
+
+@media (max-width: 768px) {
+  .sidebar .datanova-brand-logo {
+    width: 175px;
+  }
+}

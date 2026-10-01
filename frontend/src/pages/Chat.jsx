@@ -1,7 +1,2 @@
-export default function Chat() {
-  return (
-    <div>
-      <h1>Chat</h1>
-    </div>
-  );
-}
+import MainLayout from "../components/layout/MainLayout";
+export default function Chat() { return <MainLayout />; }
