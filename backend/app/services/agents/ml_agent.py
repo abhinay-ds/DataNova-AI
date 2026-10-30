@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import logging
+from pathlib import Path
+import re
 
 import pandas as pd
 
@@ -80,32 +82,11 @@ class MLAgent(BaseAgent):
 
             if task.capability == "train_model":
 
-                target = (
-                    task.input_data.get("target")
-                    or task.input_data.get("target_column")
+                target = self.resolve_target(
+                    task=task,
+                    context=context,
+                    columns=context.dataset.columns.tolist() if context.dataset is not None else [],
                 )
-
-                # ---------------------------------------------
-                # Try extracting target from user message
-                # ---------------------------------------------
-
-                if not target:
-
-                    target = self.extract_target(
-                        context.message,
-                        context.dataset.columns.tolist(),
-                    )
-
-                # ---------------------------------------------
-                # Ask Groq if target is still unknown
-                # ---------------------------------------------
-
-                if not target:
-
-                    target = self.ask_llm_for_target(
-                        context.message,
-                        context.dataset.columns.tolist(),
-                    )
 
                 # ---------------------------------------------
                 # Target still unknown
@@ -323,32 +304,11 @@ class MLAgent(BaseAgent):
 
             elif task.capability == "evaluate_model":
 
-                target = (
-                    task.input_data.get("target")
-                    or task.input_data.get("target_column")
+                target = self.resolve_target(
+                    task=task,
+                    context=context,
+                    columns=context.dataset.columns.tolist() if context.dataset is not None else [],
                 )
-
-                # ---------------------------------------------
-                # Extract target from message
-                # ---------------------------------------------
-
-                if not target:
-
-                    target = self.extract_target(
-                        context.message,
-                        context.dataset.columns.tolist(),
-                    )
-
-                # ---------------------------------------------
-                # Ask Groq if needed
-                # ---------------------------------------------
-
-                if not target:
-
-                    target = self.ask_llm_for_target(
-                        context.message,
-                        context.dataset.columns.tolist(),
-                    )
 
                 # ---------------------------------------------
                 # Target unavailable
@@ -585,6 +545,78 @@ Do not explain.
             return None
 
     # =========================================================
+    # RESOLVE TARGET WITH STRICT PRIORITY
+    # =========================================================
+
+    def resolve_target(
+        self,
+        task,
+        context,
+        columns: list[str],
+    ) -> str | None:
+        """
+        Implement strict target resolution priority:
+        A. Explicit target supplied in task.input_data
+        B. Target supplied by previous task/result context or saved model
+        C. Explicit target language in the user request
+        D. Dataset target inference only as a final fallback
+        """
+        if not columns:
+            return None
+
+        col_lower_map = {c.lower(): c for c in columns}
+
+        # Priority A: Explicit target supplied in task.input_data
+        explicit_target = (
+            task.input_data.get("target")
+            or task.input_data.get("target_column")
+        )
+        if explicit_target and str(explicit_target).strip().lower() in col_lower_map:
+            return col_lower_map[str(explicit_target).strip().lower()]
+
+        # Priority B: Target supplied by previous task/result context or saved model
+        prev_results = task.input_data.get("_previous_results", {})
+        if isinstance(prev_results, dict):
+            train_res = prev_results.get("train_model")
+            if isinstance(train_res, dict) and train_res.get("target"):
+                candidate = str(train_res.get("target")).strip().lower()
+                if candidate in col_lower_map:
+                    return col_lower_map[candidate]
+
+            for _, res in prev_results.items():
+                if isinstance(res, dict) and res.get("target"):
+                    candidate = str(res.get("target")).strip().lower()
+                    if candidate in col_lower_map:
+                        return col_lower_map[candidate]
+
+        # For evaluate_model or predict, check saved trained model package
+        if task.capability in ("evaluate_model", "predict"):
+            try:
+                model_path = Path("models/latest_model.pkl")
+                if model_path.exists():
+                    import joblib
+                    pkg = joblib.load(model_path)
+                    saved_target = pkg.get("target")
+                    if saved_target and str(saved_target).strip().lower() in col_lower_map:
+                        return col_lower_map[str(saved_target).strip().lower()]
+            except Exception:
+                pass
+
+        # Priority C: Explicit target language in the user request
+        if context.message:
+            target_from_msg = self.extract_target(context.message, columns)
+            if target_from_msg:
+                return target_from_msg
+
+        # Priority D: Dataset target inference only as a final fallback
+        if context.message:
+            llm_target = self.ask_llm_for_target(context.message, columns)
+            if llm_target and str(llm_target).strip().lower() in col_lower_map:
+                return col_lower_map[str(llm_target).strip().lower()]
+
+        return None
+
+    # =========================================================
     # EXTRACT TARGET DIRECTLY
     # =========================================================
 
@@ -593,21 +625,45 @@ Do not explain.
         message: str,
         columns: list[str],
     ) -> str | None:
+        """
+        Extract explicit target column from user request using intent language.
+        Never select a target merely because its column name is longer.
+        """
+        if not message or not columns:
+            return None
 
         message_lower = message.lower()
+        col_lower_map = {c.lower(): c for c in columns}
 
-        # Prefer exact longer column names first.
-        sorted_columns = sorted(
-            columns,
-            key=len,
-            reverse=True,
-        )
+        # Explicit target phrases (e.g., "predict salary", "predict the salary for Age 29...")
+        target_patterns = [
+            r"(?:predict|estimate|forecast|calculate|determine)\s+(?:the\s+|a\s+|an\s+)?([a-zA-Z0-9_]+)",
+            r"(?:predicting|estimating|forecasting)\s+(?:the\s+|a\s+|an\s+)?([a-zA-Z0-9_]+)",
+            r"(?:target|dependent\s+variable|label)\s*(?:is|column|variable)?\s*[:=]?\s*['\"]?([a-zA-Z0-9_]+)['\"]?",
+            r"to\s+predict\s+(?:the\s+|a\s+|an\s+)?([a-zA-Z0-9_]+)",
+            r"model\s+for\s+(?:the\s+)?([a-zA-Z0-9_]+)",
+        ]
 
-        for column in sorted_columns:
+        for pat in target_patterns:
+            match = re.search(pat, message_lower)
+            if match:
+                candidate = match.group(1).strip()
+                if candidate in col_lower_map:
+                    return col_lower_map[candidate]
 
-            if column.lower() in message_lower:
+        # Check if message explicitly says "<col> as target" or "<col> is the target"
+        for col in columns:
+            col_l = col.lower()
+            if re.search(rf"\b{re.escape(col_l)}\b\s+(?:as|is)\s+(?:the\s+)?target", message_lower):
+                return col
 
-                return column
+        # If exactly one column is mentioned in the entire request
+        mentioned = [
+            col for col in columns
+            if re.search(rf"\b{re.escape(col.lower())}\b", message_lower)
+        ]
+        if len(mentioned) == 1:
+            return mentioned[0]
 
         return None
 

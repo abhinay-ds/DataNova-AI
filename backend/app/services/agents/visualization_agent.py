@@ -209,7 +209,7 @@ class VisualizationAgent(BaseAgent):
                 getattr(task, "input_data", {}) or {}
             )
 
-            if task.capability == "scatter":
+            if task.capability in ("scatter", "smart_chart"):
 
                 input_data = (
                     self._resolve_scatter_axes(
@@ -225,8 +225,8 @@ class VisualizationAgent(BaseAgent):
                         success=False,
                         message=(
                             "I couldn't determine the "
-                            "x-axis column. Please specify "
-                            "which column should be on the x-axis."
+                            "grouping column (x-axis). Please specify "
+                            "which column to group by."
                         ),
                     )
 
@@ -235,8 +235,8 @@ class VisualizationAgent(BaseAgent):
                         success=False,
                         message=(
                             "I couldn't determine the "
-                            "y-axis column. Please specify "
-                            "which column should be on the y-axis."
+                            "metric column (y-axis). Please specify "
+                            "which column to measure."
                         ),
                     )
 

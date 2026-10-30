@@ -51,23 +51,19 @@ class FileService:
     @classmethod
     def analyze_dataset(
         cls,
-        file_path: str
+        file_path: str,
+        df: pd.DataFrame | None = None,
+        include_llm_summary: bool = False,
     ):
 
         # -------------------------------------------------
-        # Load dataframe
+        # Load dataframe (reuse passed dataframe if available)
         # -------------------------------------------------
 
-        df = cls.load_dataframe(
-            file_path
-        )
-
-
-        # -------------------------------------------------
-        # Store dataset for Chat / AI analysis
-        # -------------------------------------------------
-
-        
+        if df is None:
+            df = cls.load_dataframe(
+                file_path
+            )
 
         # -------------------------------------------------
         # Generate analysis components
@@ -97,23 +93,9 @@ class FileService:
             )
         )
 
-        summary = (
-            DatasetSummaryService.generate(
-                df
-            )
-        )
-
-
         # -------------------------------------------------
         # Dataset Preview
         # -------------------------------------------------
-        #
-        # Send first 5 rows to frontend.
-        #
-        # fillna("") ensures missing values are
-        # JSON-friendly.
-        # -------------------------------------------------
-
         preview_df = (
             df.head(5)
             .fillna("")
@@ -126,6 +108,18 @@ class FileService:
             )
         )
 
+        # -------------------------------------------------
+        # Summary (use fast summary by default to eliminate 2s latency)
+        # -------------------------------------------------
+        if include_llm_summary:
+            summary_res = DatasetSummaryService.generate(df)
+            summary_data = summary_res.data if hasattr(summary_res, "data") else summary_res
+        else:
+            summary_data = {
+                "rows": int(len(df)),
+                "columns": int(len(df.columns)),
+                "preview": preview,
+            }
 
         # -------------------------------------------------
         # Return Complete Dataset Information
@@ -151,7 +145,7 @@ class FileService:
             "recommendations": recommendations.data,
 
             # Dataset summary
-            "summary": summary.data,
+            "summary": summary_data,
 
             # First 5 rows
             "preview": preview,

@@ -1,9 +1,13 @@
 import {
   Bell,
   ChevronDown,
+  ChevronRight,
+  LayoutDashboard,
   Moon,
+  PanelBottom,
   PanelLeft,
   PanelRight,
+  RotateCcw,
   Search,
   Sun,
 } from "lucide-react";
@@ -11,12 +15,17 @@ import {
 import { useNavigate } from "react-router-dom";
 
 import { useTheme } from "../../context/ThemeContext";
+import { useProject } from "../../context/ProjectContext";
 
 
 export default function Navbar({
+  sidebarCollapsed = false,
   onToggleSidebar,
   datasetOpen,
   onToggleDataset,
+  panelLayout = "side",
+  onTogglePanelLayout,
+  onResetLayout,
 }) {
   const navigate = useNavigate();
 
@@ -24,6 +33,7 @@ export default function Navbar({
     theme,
     setTheme,
   } = useTheme();
+  const { activeProject } = useProject();
 
 
   const toggleTheme = () => {
@@ -42,9 +52,12 @@ export default function Navbar({
 
         <button
           type="button"
-          className="icon-button navbar-sidebar-toggle"
+          className={`icon-button navbar-sidebar-toggle ${
+            !sidebarCollapsed ? "is-pinned" : ""
+          }`}
           onClick={onToggleSidebar}
-          aria-label="Toggle sidebar"
+          aria-label={sidebarCollapsed ? "Pin sidebar open" : "Collapse sidebar"}
+          title={sidebarCollapsed ? "Pin sidebar open" : "Collapse sidebar"}
         >
           <PanelLeft size={18} />
         </button>
@@ -52,14 +65,31 @@ export default function Navbar({
 
         <div className="breadcrumb">
 
-          <span className="muted">
-            Workspace
-          </span>
+          <button
+            type="button"
+            onClick={() => navigate("/dashboard")}
+            title="Return to Dashboard"
+            style={{
+              background: "transparent",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+              color: "var(--dn-text-muted, #64748b)",
+              fontSize: "13px",
+              fontWeight: "500",
+            }}
+          >
+            <LayoutDashboard size={14} />
+            <span>Dashboard</span>
+          </button>
 
-          <ChevronDown size={13} />
+          <ChevronRight size={13} style={{ color: "var(--dn-text-muted, #94a3b8)" }} />
 
           <strong>
-            Data analysis
+            {activeProject?.name || "Data analysis"}
           </strong>
 
         </div>
@@ -111,6 +141,37 @@ export default function Navbar({
           <Bell size={18} />
         </button>
 
+        {datasetOpen && onTogglePanelLayout && (
+          <button
+            type="button"
+            className="icon-button"
+            onClick={onTogglePanelLayout}
+            title={
+              panelLayout === "bottom"
+                ? "Dock dataset panel to right"
+                : "Dock dataset panel to bottom"
+            }
+            aria-label="Toggle panel docking position"
+          >
+            {panelLayout === "bottom" ? (
+              <PanelRight size={17} />
+            ) : (
+              <PanelBottom size={17} />
+            )}
+          </button>
+        )}
+
+        {onResetLayout && (
+          <button
+            type="button"
+            className="icon-button"
+            onClick={onResetLayout}
+            title="Reset workspace panel sizes to default"
+            aria-label="Reset workspace layout"
+          >
+            <RotateCcw size={16} />
+          </button>
+        )}
 
         <button
           type="button"

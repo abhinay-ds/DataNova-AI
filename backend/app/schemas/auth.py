@@ -22,6 +22,7 @@ class UserResponse(BaseModel):
     id: int
     email: EmailStr
     full_name: str | None = None
+    is_guest: bool = False
 
 
 class AuthResponse(BaseModel):

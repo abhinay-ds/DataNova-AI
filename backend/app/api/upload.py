@@ -1,7 +1,11 @@
+from typing import Any
 from pathlib import Path
+import logging
 import os
 import shutil
 import uuid
+
+logger = logging.getLogger(__name__)
 
 from fastapi import (
     APIRouter,
@@ -9,6 +13,7 @@ from fastapi import (
     File,
     HTTPException,
     Depends,
+    status,
 )
 from sqlalchemy.orm import Session
 
@@ -28,7 +33,11 @@ router = APIRouter(
 )
 
 
-UPLOAD_FOLDER = "uploads"
+from app.core.config import settings
+
+BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+upload_base = settings.DATA_DIR if settings.DATA_DIR else BACKEND_DIR
+UPLOAD_FOLDER = os.path.join(upload_base, "uploads")
 
 os.makedirs(
     UPLOAD_FOLDER,
@@ -49,11 +58,16 @@ async def upload_file(
     file: UploadFile = File(...),
     session_id: str = "default",
     project_id: int | None = None,
-    current_user: User = Depends(get_current_user),
+    current_user: Any = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
 
     try:
+        if getattr(current_user, "is_guest", False):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Guest users cannot upload permanent datasets. Please sign in or create an account.",
+            )
 
         # =================================================
         # Validate project
@@ -119,9 +133,10 @@ async def upload_file(
         # Create unique storage filename
         # =================================================
 
+        safe_basename = Path(file.filename).name
         unique_filename = (
             f"{uuid.uuid4().hex}_"
-            f"{file.filename}"
+            f"{safe_basename}"
         )
 
         file_path = os.path.join(
@@ -160,11 +175,13 @@ async def upload_file(
         )
 
         # =================================================
-        # Generate analysis
+        # Generate analysis (reuse parsed dataframe, omit slow LLM call)
         # =================================================
 
         analysis = FileService.analyze_dataset(
-            file_path
+            file_path,
+            df=dataframe,
+            include_llm_summary=False,
         )
 
         # =================================================
@@ -249,8 +266,9 @@ async def upload_file(
     except Exception as e:
 
         db.rollback()
+        logger.exception("Error processing file upload: %s", e)
 
         raise HTTPException(
             status_code=500,
-            detail=str(e),
+            detail="An error occurred while processing the uploaded file.",
         )

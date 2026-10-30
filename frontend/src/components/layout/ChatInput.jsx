@@ -18,6 +18,7 @@ import {
 import {
   uploadDataset,
   sendMessage,
+  API_BASE_URL,
 } from "../../services/api";
 
 import { useDataset } from "../../context/DatasetContext";
@@ -39,7 +40,11 @@ export default function ChatInput() {
   // =====================================================
 
   const { setDataset } = useDataset();
-  const { setMessages } = useChat();
+  const {
+    setMessages,
+    activeConversationId,
+    setActiveConversationId,
+  } = useChat();
   const { activeProject } = useProject();
 
   // =====================================================
@@ -771,12 +776,28 @@ const result = await uploadDataset(
 
     if (
       !data ||
-      typeof data !== "object" ||
-      !data.chart_path
+      typeof data !== "object"
     ) {
 
       return null;
 
+    }
+
+    if (data.url) {
+      if (
+        data.url.startsWith("http://") ||
+        data.url.startsWith("https://")
+      ) {
+        return data.url;
+      }
+      const cleanUrl = data.url.startsWith("/")
+        ? data.url
+        : `/${data.url}`;
+      return `${API_BASE_URL}${cleanUrl}`;
+    }
+
+    if (!data.chart_path) {
+      return null;
     }
 
     const filename =
@@ -795,7 +816,7 @@ const result = await uploadDataset(
     }
 
     return (
-      `http://127.0.0.1:8000/charts/${filename}`
+      `${API_BASE_URL}/charts/${filename}`
     );
 
   };
@@ -814,6 +835,23 @@ const result = await uploadDataset(
 
       return;
 
+    }
+
+    if (!activeProject?.id) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id:
+            Date.now() +
+            Math.random(),
+          sender: "assistant",
+          type: "error",
+          text:
+            "Please select or create a project before sending a message.",
+          data: null,
+        },
+      ]);
+      return;
     }
 
     const currentMessage =
@@ -851,14 +889,20 @@ const result = await uploadDataset(
     try {
 
       // =================================================
-      // Send message WITH SAME SESSION ID
+      // Send message WITH SAME SESSION ID & PROJECT/CONVERSATION
       // =================================================
 
       const result =
         await sendMessage(
           currentMessage,
-          sessionId
+          sessionId,
+          activeProject.id,
+          activeConversationId
         );
+
+      if (result?.conversation_id) {
+        setActiveConversationId(result.conversation_id);
+      }
 
       const backendResponses =
         Array.isArray(
@@ -1298,8 +1342,11 @@ const result = await uploadDataset(
 
     const handlePromptEvent = (event) => {
 
+      const rawDetail = event?.detail;
       const prompt =
-        event?.detail;
+        typeof rawDetail === "string"
+          ? rawDetail
+          : rawDetail?.prompt;
 
       if (
         typeof prompt !== "string" ||
@@ -1377,7 +1424,7 @@ const result = await uploadDataset(
 
   return (
 
-    <div className="border-t border-slate-200 bg-white p-6">
+    <div className="chat-composer border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 sm:px-6 sm:py-3.5">
 
       <div className="mx-auto max-w-4xl">
 
@@ -1387,7 +1434,7 @@ const result = await uploadDataset(
 
         {loading && uploadStage && (
 
-          <div className="mb-4 overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-white p-4 shadow-sm">
+          <div className="mb-4 overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-white p-4 shadow-sm dark:border-blue-900/40 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950">
 
             <div className="flex items-center gap-3">
 
@@ -1412,10 +1459,10 @@ const result = await uploadDataset(
 
                     <Sparkles
                       size={14}
-                      className="text-blue-600"
+                      className="text-blue-600 dark:text-blue-400"
                     />
 
-                    <p className="text-sm font-bold text-slate-800">
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
 
                       {uploadStage}
 
@@ -1423,7 +1470,7 @@ const result = await uploadDataset(
 
                   </div>
 
-                  <span className="text-[11px] font-bold text-blue-600">
+                  <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400">
 
                     {uploadProgress}%
 
@@ -1431,7 +1478,7 @@ const result = await uploadDataset(
 
                 </div>
 
-                <p className="mt-1 text-[11px] text-slate-500">
+                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
 
                   DataNova AI is preparing your dataset for analysis.
 
@@ -1444,7 +1491,7 @@ const result = await uploadDataset(
 
             {/* Progress */}
 
-            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-blue-100">
+            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-blue-100 dark:bg-slate-800">
 
               <div
                 className="h-full rounded-full bg-blue-600 transition-all duration-500"
@@ -1493,7 +1540,7 @@ const result = await uploadDataset(
                       className={`flex h-4 w-4 items-center justify-center rounded-full ${
                         completed
                           ? "bg-blue-600 text-white"
-                          : "bg-slate-200 text-slate-400"
+                          : "bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
                       }`}
                     >
 
@@ -1510,8 +1557,8 @@ const result = await uploadDataset(
                     <span
                       className={`text-[9px] font-semibold ${
                         completed
-                          ? "text-blue-600"
-                          : "text-slate-400"
+                          ? "text-blue-600 dark:text-blue-400"
+                          : "text-slate-400 dark:text-slate-500"
                       }`}
                     >
                       {stage.label}
@@ -1548,7 +1595,7 @@ const result = await uploadDataset(
             CHAT INPUT
         ================================================= */}
 
-        <div className="flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-3 shadow-sm transition-all focus-within:border-blue-300 focus-within:shadow-md">
+        <div className="flex items-center rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 sm:px-4 sm:py-3 shadow-sm transition-all focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-blue-900/40">
 
           {/* Upload */}
 
@@ -1556,11 +1603,11 @@ const result = await uploadDataset(
             type="button"
             onClick={openFilePicker}
             disabled={loading}
-            className="text-slate-500 transition hover:text-blue-600 disabled:opacity-40"
+            className="text-slate-500 transition hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 disabled:opacity-40"
             title="Upload dataset"
           >
 
-            <Paperclip size={22} />
+            <Paperclip size={20} />
 
           </button>
 
@@ -1590,7 +1637,7 @@ const result = await uploadDataset(
 
             disabled={loading}
 
-            className="mx-4 flex-1 bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400 disabled:opacity-50"
+            className="mx-3 flex-1 bg-transparent text-sm text-slate-800 dark:text-slate-100 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 disabled:opacity-50"
           />
 
 
@@ -1599,11 +1646,11 @@ const result = await uploadDataset(
           <button
             type="button"
             disabled={loading}
-            className="mr-3 text-slate-500 transition hover:text-blue-600 disabled:opacity-40"
+            className="mr-2 text-slate-500 transition hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 disabled:opacity-40"
             title="Voice input"
           >
 
-            <Mic size={20} />
+            <Mic size={18} />
 
           </button>
 
@@ -1622,7 +1669,7 @@ const result = await uploadDataset(
               !message.trim()
             }
 
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-blue-600 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
 
             title="Send"
           >
@@ -1637,7 +1684,7 @@ const result = await uploadDataset(
             ) : (
 
               <SendHorizontal
-                size={18}
+                size={17}
               />
 
             )}
@@ -1651,13 +1698,13 @@ const result = await uploadDataset(
             QUICK ACTIONS
         ================================================= */}
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-2.5 sm:mt-3 flex flex-wrap gap-1.5 sm:gap-2">
 
           <button
             type="button"
             onClick={openFilePicker}
             disabled={loading}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-medium text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-40"
+            className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/60 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:text-slate-400 transition hover:border-blue-200 dark:hover:border-blue-900 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-40"
           >
             CSV
           </button>
@@ -1667,7 +1714,7 @@ const result = await uploadDataset(
             type="button"
             onClick={openFilePicker}
             disabled={loading}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-medium text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-40"
+            className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/60 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:text-slate-400 transition hover:border-blue-200 dark:hover:border-blue-900 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-40"
           >
             Excel
           </button>
@@ -1677,7 +1724,7 @@ const result = await uploadDataset(
             type="button"
             onClick={openFilePicker}
             disabled={loading}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-medium text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-40"
+            className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/60 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:text-slate-400 transition hover:border-blue-200 dark:hover:border-blue-900 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-40"
           >
             JSON
           </button>
@@ -1686,10 +1733,10 @@ const result = await uploadDataset(
           <button
             type="button"
             disabled={loading}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-medium text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/60 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:text-slate-400 transition hover:border-blue-200 dark:hover:border-blue-900 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-40"
           >
 
-            <Database size={13} />
+            <Database size={12} />
 
             SQL
 
@@ -1700,10 +1747,10 @@ const result = await uploadDataset(
             type="button"
             onClick={openFilePicker}
             disabled={loading}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-medium text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/60 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:text-slate-400 transition hover:border-blue-200 dark:hover:border-blue-900 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-40"
           >
 
-            <FileSpreadsheet size={13} />
+            <FileSpreadsheet size={12} />
 
             Sample Dataset
 

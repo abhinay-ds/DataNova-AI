@@ -1,0 +1,199 @@
+{
+  "dataset_rows": 64374,
+  "split": {
+    "train_size": 51499,
+    "test_size": 12875,
+    "train_churn_0": 27105,
+    "train_churn_1": 24394,
+    "test_churn_0": 6776,
+    "test_churn_1": 6099
+  },
+  "leakage_findings": {
+    "exact_duplicates": 0,
+    "duplicates_no_id": 0,
+    "train_test_overlap": 0,
+    "customer_id_correlation": 0.5298315536981301,
+    "churn_tail_rate_id_ge_51499": 1.0,
+    "churn_head_rate_id_le_40000": 0.25765
+  },
+  "results": [
+    {
+      "model": "Logistic Regression",
+      "customer_id": "Excluded",
+      "train_accuracy": 0.8261907998213558,
+      "cv_mean": 0.826055007697043,
+      "cv_std": 0.005245167948133223,
+      "test_accuracy": 0.8270291262135923,
+      "precision": 0.8136746597537265,
+      "recall": 0.823413674372848,
+      "f1": 0.8185151984353354,
+      "roc_auc": 0.9030001434419446
+    },
+    {
+      "model": "Decision Tree",
+      "customer_id": "Excluded",
+      "train_accuracy": 1.0,
+      "cv_mean": 0.9984271505292719,
+      "cv_std": 0.00038544128122683716,
+      "test_accuracy": 0.9991456310679612,
+      "precision": 0.9985260399606944,
+      "recall": 0.9996720773897361,
+      "f1": 0.9990987300286768,
+      "roc_auc": 0.999171930076214
+    },
+    {
+      "model": "Random Forest",
+      "customer_id": "Excluded",
+      "train_accuracy": 1.0,
+      "cv_mean": 0.998368901872837,
+      "cv_std": 0.00032722196279785836,
+      "test_accuracy": 0.9985242718446602,
+      "precision": 0.9995070653959908,
+      "recall": 0.9973766191178882,
+      "f1": 0.9984407057858022,
+      "roc_auc": 0.9999942168311797
+    },
+    {
+      "model": "Gradient Boosting",
+      "customer_id": "Excluded",
+      "train_accuracy": 0.9972620827588885,
+      "cv_mean": 0.996349456116486,
+      "cv_std": 0.00056136368177221,
+      "test_accuracy": 0.9964271844660194,
+      "precision": 0.998025341451374,
+      "recall": 0.9944253156255124,
+      "f1": 0.996222076215506,
+      "roc_auc": 0.9998023801683865
+    },
+    {
+      "model": "Logistic Regression",
+      "customer_id": "Included",
+      "train_accuracy": 0.8636866735276413,
+      "cv_mean": 0.8637449691128463,
+      "cv_std": 0.002907830079030677,
+      "test_accuracy": 0.8608932038834951,
+      "precision": 0.8545095457537853,
+      "recall": 0.8512870962452861,
+      "f1": 0.8528952772073922,
+      "roc_auc": 0.9378680539302995
+    },
+    {
+      "model": "Decision Tree",
+      "customer_id": "Included",
+      "train_accuracy": 1.0,
+      "cv_mean": 0.9977669657813889,
+      "cv_std": 0.0005352584112302627,
+      "test_accuracy": 0.9978252427184466,
+      "precision": 0.9973783385220384,
+      "recall": 0.9980324643384161,
+      "f1": 0.9977052942140633,
+      "roc_auc": 0.9978355946249341
+    },
+    {
+      "model": "Random Forest",
+      "customer_id": "Included",
+      "train_accuracy": 1.0,
+      "cv_mean": 0.9981164652614968,
+      "cv_std": 0.00029192974694989133,
+      "test_accuracy": 0.9985242718446602,
+      "precision": 0.9998355804011838,
+      "recall": 0.9970486965076242,
+      "f1": 0.998440193744356,
+      "roc_auc": 0.9999954025017745
+    },
+    {
+      "model": "Gradient Boosting",
+      "customer_id": "Included",
+      "train_accuracy": 0.9976698576671391,
+      "cv_mean": 0.9972038325900243,
+      "cv_std": 0.0003950646793078877,
+      "test_accuracy": 0.99673786407767,
+      "precision": 0.9996700214486058,
+      "recall": 0.9934415477947205,
+      "f1": 0.9965460526315789,
+      "roc_auc": 0.9997811832818317
+    }
+  ],
+  "confusion_matrices": {
+    "Logistic Regression (CustomerID Excluded)": [
+      [
+        5626,
+        1150
+      ],
+      [
+        1077,
+        5022
+      ]
+    ],
+    "Decision Tree (CustomerID Excluded)": [
+      [
+        6767,
+        9
+      ],
+      [
+        2,
+        6097
+      ]
+    ],
+    "Random Forest (CustomerID Excluded)": [
+      [
+        6773,
+        3
+      ],
+      [
+        16,
+        6083
+      ]
+    ],
+    "Gradient Boosting (CustomerID Excluded)": [
+      [
+        6764,
+        12
+      ],
+      [
+        34,
+        6065
+      ]
+    ],
+    "Logistic Regression (CustomerID Included)": [
+      [
+        5892,
+        884
+      ],
+      [
+        907,
+        5192
+      ]
+    ],
+    "Decision Tree (CustomerID Included)": [
+      [
+        6760,
+        16
+      ],
+      [
+        12,
+        6087
+      ]
+    ],
+    "Random Forest (CustomerID Included)": [
+      [
+        6775,
+        1
+      ],
+      [
+        18,
+        6081
+      ]
+    ],
+    "Gradient Boosting (CustomerID Included)": [
+      [
+        6774,
+        2
+      ],
+      [
+        40,
+        6059
+      ]
+    ]
+  }
+}

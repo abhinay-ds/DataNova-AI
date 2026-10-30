@@ -16,6 +16,14 @@ function getInitialTheme() {
     if (savedTheme === "dark" || savedTheme === "light") {
       return savedTheme;
     }
+
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+    ) {
+      return "dark";
+    }
   } catch {
     // Ignore localStorage errors.
   }
@@ -35,11 +43,9 @@ function applyTheme(theme) {
   body.classList.toggle("dark", theme === "dark");
   body.classList.toggle("light", theme === "light");
 
-  body.style.background =
-    theme === "dark" ? "#111827" : "#f7f9fc";
-
-  body.style.color =
-    theme === "dark" ? "#e5e7eb" : "#0f172a";
+  // Use CSS custom properties rather than hardcoded colors
+  body.style.backgroundColor = "";
+  body.style.color = "";
 }
 
 export function ThemeProvider({ children }) {

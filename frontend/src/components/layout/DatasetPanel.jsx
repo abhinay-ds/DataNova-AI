@@ -10,19 +10,68 @@ import {
   HardDrive,
   Lightbulb,
   MessageCircle,
+  PanelBottom,
+  PanelRight,
   Rows3,
   Sparkles,
   Table2,
   Upload,
+  X,
 } from "lucide-react";
 
 import { useState } from "react";
 import { useDataset } from "../../context/DatasetContext";
 
-export default function DatasetPanel() {
-  const { dataset } = useDataset();
+export default function DatasetPanel({
+  layoutMode = "side",
+  onToggleLayout,
+  onClose,
+}) {
+  const {
+    dataset,
+    datasets = [],
+    activeDatasetId,
+    selectDataset,
+    loading,
+    error,
+  } = useDataset();
 
   const [activeTab, setActiveTab] = useState("overview");
+
+  /* =========================================================
+     LOADING STATE
+     ========================================================= */
+
+  if (loading && !dataset) {
+    return (
+      <aside className="dataset-panel">
+        <div className="dataset-panel-header">
+          <div className="dataset-title-group">
+            <div className="dataset-header-icon">
+              <Database size={17} />
+            </div>
+
+            <div>
+              <h2>Dataset</h2>
+              <p>Loading active data...</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="dataset-empty-state">
+          <div className="dataset-empty-icon animate-pulse">
+            <FileSpreadsheet size={34} />
+          </div>
+
+          <h3>Restoring dataset...</h3>
+
+          <p>
+            Profiling rows, columns and data quality.
+          </p>
+        </div>
+      </aside>
+    );
+  }
 
   /* =========================================================
      EMPTY STATE
@@ -39,27 +88,34 @@ export default function DatasetPanel() {
 
             <div>
               <h2>Dataset</h2>
-              <p>Your active data</p>
+              <p>{error ? "Error" : "Your active data"}</p>
             </div>
           </div>
         </div>
 
         <div className="dataset-empty-state">
           <div className="dataset-empty-icon">
-            <FileSpreadsheet size={34} />
+            {error ? (
+              <AlertCircle size={34} className="text-red-500" />
+            ) : (
+              <FileSpreadsheet size={34} />
+            )}
           </div>
 
-          <h3>No dataset uploaded</h3>
+          <h3>{error ? "Failed to load dataset" : "No dataset uploaded"}</h3>
 
           <p>
-            Upload a CSV, Excel or JSON file to start
-            analyzing your data with DataNova AI.
+            {error
+              ? error
+              : "Upload a CSV, Excel or JSON file to start analyzing your data with DataNova AI."}
           </p>
 
-          <div className="dataset-upload-hint">
-            <Upload size={14} />
-            <span>Upload from the workspace</span>
-          </div>
+          {!error && (
+            <div className="dataset-upload-hint">
+              <Upload size={14} />
+              <span>Upload from the workspace</span>
+            </div>
+          )}
         </div>
       </aside>
     );
@@ -244,11 +300,46 @@ export default function DatasetPanel() {
 
         </div>
 
-        <div className="dataset-ready">
-          <CheckCircle2 size={12} />
-          Ready
-        </div>
+        <div className="dataset-header-actions" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <div className="dataset-ready">
+            <CheckCircle2 size={12} />
+            Ready
+          </div>
 
+          {onToggleLayout && (
+            <button
+              type="button"
+              className="icon-button"
+              onClick={onToggleLayout}
+              title={
+                layoutMode === "bottom"
+                  ? "Dock dataset panel to right"
+                  : "Dock dataset panel to bottom"
+              }
+              aria-label="Toggle panel docking position"
+              style={{ width: "26px", height: "26px", padding: 0 }}
+            >
+              {layoutMode === "bottom" ? (
+                <PanelRight size={14} />
+              ) : (
+                <PanelBottom size={14} />
+              )}
+            </button>
+          )}
+
+          {onClose && (
+            <button
+              type="button"
+              className="icon-button"
+              onClick={onClose}
+              title="Close dataset panel"
+              aria-label="Close dataset panel"
+              style={{ width: "26px", height: "26px", padding: 0 }}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
 
@@ -257,6 +348,26 @@ export default function DatasetPanel() {
           ===================================================== */}
 
       <div className="dataset-panel-content">
+
+        {/* Switcher if multiple datasets exist */}
+        {datasets.length > 1 && (
+          <div className="dataset-switcher mb-3 px-1">
+            <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+              Select Dataset:
+            </label>
+            <select
+              className="w-full text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+              value={activeDatasetId || dataset.id || ""}
+              onChange={(e) => selectDataset(Number(e.target.value))}
+            >
+              {datasets.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.filename} ({d.rows != null ? Number(d.rows).toLocaleString() : 0} rows)
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Dataset card */}
 
@@ -297,7 +408,9 @@ export default function DatasetPanel() {
               </div>
 
               <small>
-                Uploaded just now
+                {dataset.created_at
+                  ? `Uploaded ${new Date(dataset.created_at).toLocaleDateString()}`
+                  : "Uploaded just now"}
               </small>
 
             </div>

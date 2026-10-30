@@ -7,9 +7,11 @@ import {
 
 import {
   createProject as apiCreateProject,
+  deleteProject as apiDeleteProject,
   getActiveProject,
   getProjects,
   setActiveProject as saveActiveProject,
+  updateProject as apiUpdateProject,
 } from "../services/api";
 
 import { useAuth } from "./AuthContext";
@@ -64,13 +66,9 @@ export function ProjectProvider({ children }) {
         }
       }
 
-      if (projectList.length > 0) {
-        setActiveProjectState(projectList[0]);
-        saveActiveProject(projectList[0]);
-      } else {
-        setActiveProjectState(null);
-        saveActiveProject(null);
-      }
+      // Do not automatically open the first project on login; keep projects optional
+      setActiveProjectState(null);
+      saveActiveProject(null);
     } catch (err) {
       console.error("Failed to load projects:", err);
 
@@ -112,6 +110,42 @@ export function ProjectProvider({ children }) {
     return project;
   }
 
+  async function updateProject(projectId, name, description = "") {
+    const updated = await apiUpdateProject(
+      projectId,
+      name,
+      description
+    );
+
+    setProjects((current) =>
+      current.map((project) =>
+        project.id === projectId
+          ? { ...project, ...updated }
+          : project
+      )
+    );
+
+    if (activeProject?.id === projectId) {
+      const merged = { ...activeProject, ...updated };
+      setActiveProjectState(merged);
+      saveActiveProject(merged);
+    }
+
+    return updated;
+  }
+
+  async function deleteProject(projectId) {
+    await apiDeleteProject(projectId);
+
+    setProjects((current) =>
+      current.filter((project) => project.id !== projectId)
+    );
+
+    if (activeProject?.id === projectId) {
+      clearProject();
+    }
+  }
+
   function clearProject() {
     setActiveProjectState(null);
     saveActiveProject(null);
@@ -127,6 +161,8 @@ export function ProjectProvider({ children }) {
         loadProjects,
         selectProject,
         createProject,
+        updateProject,
+        deleteProject,
         clearProject,
       }}
     >

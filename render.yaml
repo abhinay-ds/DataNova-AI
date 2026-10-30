@@ -1,0 +1,58 @@
+# ==============================================================================
+# DataNova AI — Render Blueprint Deployment Specification
+# ==============================================================================
+# Deploys DataNova AI backend with a Persistent Disk for SQLite & file uploads,
+# paired with a high-performance frontend static site.
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # Backend FastAPI Service (with Persistent Disk for SQLite & uploads)
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: datanova-backend
+    env: python
+    region: oregon
+    plan: starter # Starter plan or higher is required on Render for Persistent Disks
+    buildCommand: "cd backend && pip install -r requirements.txt"
+    startCommand: "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    disk:
+      name: datanova-storage
+      mountPath: /data
+      sizeGB: 10
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATA_DIR
+        value: /data
+      - key: DATABASE_URL
+        value: sqlite:////data/datanova.db
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 120
+      - key: GROQ_API_KEY
+        sync: false # Set securely in Render dashboard
+      - key: JWT_SECRET_KEY
+        generateValue: true # Render automatically generates a cryptographically secure 256-bit secret
+      - key: ALLOWED_ORIGINS
+        sync: false # Set to your frontend static site URL (e.g. https://datanova-frontend.onrender.com)
+
+  # ----------------------------------------------------------------------------
+  # Frontend React Static Site
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: datanova-frontend
+    env: static
+    region: oregon
+    buildCommand: "cd frontend && npm install && npm run build"
+    staticPublishPath: "./frontend/dist"
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: datanova-backend
+          property: host

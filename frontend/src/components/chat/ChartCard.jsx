@@ -48,9 +48,10 @@ export default function ChartCard({ data }) {
   // BUILD CHART URL
   // =========================================================
 
+  const apiBase = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
   const chartUrl = String(chartPath).startsWith("http")
     ? chartPath
-    : `http://127.0.0.1:8000/charts/${filename}`;
+    : `${apiBase}/charts/${filename}`;
 
   // =========================================================
   // CHART TYPE
@@ -272,7 +273,7 @@ export default function ChartCard({ data }) {
               src={chartUrl}
               alt={title}
               onError={() => setImageError(true)}
-              className="block h-auto max-h-[520px] w-full rounded-lg object-contain"
+              className="block h-auto max-h-[520px] w-full rounded-lg bg-white object-contain dark:bg-white/95"
             />
           ) : (
             <div className="flex min-h-[280px] flex-col items-center justify-center px-6 text-center">

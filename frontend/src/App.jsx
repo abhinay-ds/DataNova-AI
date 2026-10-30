@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import {
   BrowserRouter,
   Navigate,
@@ -7,14 +8,24 @@ import {
 
 import { useAuth } from "./context/AuthContext";
 
-import Landing from "./pages/Landing";
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import Workspace from "./pages/Workspace";
-import Datasets from "./pages/Datasets";
-import Reports from "./pages/Reports";
-import Tasks from "./pages/Tasks";
-import Settings from "./pages/Settings";
+const Landing = lazy(() => import("./pages/Landing"));
+const Login = lazy(() => import("./pages/Login"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Projects = lazy(() => import("./pages/Projects"));
+const Workspace = lazy(() => import("./pages/Workspace"));
+const Datasets = lazy(() => import("./pages/Datasets"));
+const Reports = lazy(() => import("./pages/Reports"));
+const Tasks = lazy(() => import("./pages/Tasks"));
+const Settings = lazy(() => import("./pages/Settings"));
+
+function PageLoader() {
+  return (
+    <div className="app-loading">
+      <div className="app-loading-spinner" />
+      <span>Loading...</span>
+    </div>
+  );
+}
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -57,7 +68,8 @@ function PublicAuthRoute({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
 
         {/* Public */}
         <Route path="/" element={<Landing />} />
@@ -77,6 +89,15 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/projects"
+          element={
+            <ProtectedRoute>
+              <Projects />
             </ProtectedRoute>
           }
         />
@@ -133,6 +154,7 @@ export default function App() {
         />
 
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

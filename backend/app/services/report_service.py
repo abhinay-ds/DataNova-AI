@@ -12,9 +12,13 @@ from app.services.recommendation_service import RecommendationService
 from app.services.insight_service import InsightService
 
 
+BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
+STATIC_REPORTS_DIR = BACKEND_DIR / "static" / "reports"
+
+
 class ReportService:
 
-    REPORT_FOLDER = Path("static/reports")
+    REPORT_FOLDER = STATIC_REPORTS_DIR
 
     @classmethod
     def generate(cls, df: pd.DataFrame) -> AIResponse:

@@ -59,9 +59,8 @@ class PlannerAgent(BaseAgent):
         # =====================================================
 
         if context.capability_registry is None:
-            raise ValueError(
-                "Capability registry is not available."
-            )
+            from app.core.registry.capability_loader import load_capabilities
+            context.capability_registry = load_capabilities()
 
         capabilities = (
             context.capability_registry.list_capabilities()
@@ -198,6 +197,33 @@ Columns: {len(context.dataset.columns)}
             )
 
         # =====================================================
+        # DETERMINISTIC PURE CODE GENERATION ROUTING
+        # =====================================================
+        # SQL, conversion, explanation, debugging, and optimization
+        # requests do not require a dataset and must bypass data_question.
+
+        pure_code = self._detect_pure_code_request(
+            normalized_message,
+            context.message,
+        )
+        if pure_code is not None:
+            code_cap, code_action, code_input = pure_code
+            if context.capability_registry.has_capability(code_cap):
+                return ExecutionPlan(
+                    objective=code_action,
+                    tasks=[
+                        AITask(
+                            id=str(uuid.uuid4()),
+                            capability=code_cap,
+                            action=code_action,
+                            priority=TaskPriority.HIGH,
+                            status=TaskStatus.PENDING,
+                            input_data=code_input,
+                        )
+                    ],
+                )
+
+        # =====================================================
         # DETERMINISTIC CODE GENERATION ROUTING
         # =====================================================
         # Code-generation requests must bypass the general LLM
@@ -243,8 +269,47 @@ Columns: {len(context.dataset.columns)}
             )
 
         # =====================================================
+        # DETERMINISTIC DATASET ANALYSIS ROUTING
+        # =====================================================
+        # When user asks to analyze, explore, summarize, or conduct
+        # EDA on the dataset without requesting ML models, charts,
+        # or reports:
+        # Build an analysis plan with analyze_dataset and data_analysis.
+        # Guarantees:
+        # 1. Grounded calculation (profiling, missing values, quality).
+        # 2. Rich, intelligent data science answer answering the prompt.
+        # 3. Completely bypasses LLM planner token explosion / TPM limits.
+
+        if (
+            analysis_requested
+            and not ml_requested
+            and not visualization_requested
+            and not report_requested
+        ):
+            return self._build_analysis_plan(
+                context=context,
+                objective=(
+                    "Perform comprehensive dataset analysis and answer questions"
+                ),
+            )
+
+        # =====================================================
         # PLANNER PROMPT
         # =====================================================
+
+        # Compact conversation history to prevent Groq TPM limit exhaustion
+        compact_history = []
+        for item in (context.conversation_history or [])[-5:]:
+            if isinstance(item, dict):
+                role = item.get("role", "user")
+                content = item.get("content", "")
+                if isinstance(content, dict):
+                    content = content.get("message") or content.get("answer") or ""
+                content_str = str(content).strip()
+                if len(content_str) > 250:
+                    content_str = content_str[:250] + "..."
+                if content_str:
+                    compact_history.append({"role": role, "content": content_str})
 
         prompt = f"""
 You are the planning engine of DataNova AI.
@@ -271,7 +336,7 @@ USER REQUEST:
 CONVERSATION HISTORY:
 
 {json.dumps(
-    context.conversation_history or [],
+    compact_history,
     indent=2,
     default=str
 )}
@@ -722,6 +787,101 @@ Return ONLY JSON.
         )
 
     # =========================================================
+    # PURE CODE REQUEST DETECTION
+    # =========================================================
+
+    @staticmethod
+    def _detect_pure_code_request(
+        normalized_message: str,
+        original_message: str | None = None,
+    ) -> tuple[str, str, dict] | None:
+        """
+        Detect pure code-generation requests that do not require a dataset:
+        Returns (capability, action, input_data) or None.
+        """
+        raw = original_message or normalized_message or ""
+        lower = (normalized_message or "").lower().strip()
+
+        # 1. SQL Generation
+        sql_keywords = [
+            "generate sql", "write sql", "create sql", "give me sql",
+            "show me sql", "sql to calculate", "sql query", "sql code",
+        ]
+        if any(kw in lower for kw in sql_keywords) or lower.startswith("select ") or re.search(r"\bgenerate\s+sql\b", lower):
+            return (
+                "generate_sql",
+                "Generate SQL query based on user request",
+                {"prompt": raw, "query": raw},
+            )
+
+        # 2. Code Conversion
+        if (
+            "convert this python code to" in lower
+            or "convert python code to" in lower
+            or "convert this code to" in lower
+            or "convert to javascript" in lower
+            or "convert to python" in lower
+            or lower.startswith("convert this")
+            or re.search(r"\bconvert\s+(?:this\s+)?(?:.+?\s+)?code\s+to\s+([a-zA-Z\+#]+)", lower)
+        ):
+            target_lang = "JavaScript"
+            lang_match = re.search(r"\bto\s+([a-zA-Z\+#]+)", lower)
+            if lang_match:
+                matched = lang_match.group(1).lower()
+                lang_names = {
+                    "javascript": "JavaScript", "js": "JavaScript", "python": "Python",
+                    "py": "Python", "typescript": "TypeScript", "ts": "TypeScript",
+                    "c++": "C++", "cpp": "C++", "java": "Java", "c#": "C#", "go": "Go",
+                    "rust": "Rust", "sql": "SQL", "r": "R"
+                }
+                target_lang = lang_names.get(matched, matched.title())
+            return (
+                "convert_code",
+                f"Convert code to {target_lang}",
+                {"code": raw, "target_language": target_lang},
+            )
+
+        # 3. Explain Code
+        explain_keywords = [
+            "explain this python code", "explain this code", "explain the code",
+            "explain python code", "break down this code",
+        ]
+        if any(kw in lower for kw in explain_keywords) or lower.startswith("explain this"):
+            return (
+                "explain_code",
+                "Explain the provided code",
+                {"code": raw},
+            )
+
+        # 4. Debug Code
+        debug_keywords = [
+            "debug this python code", "debug this code", "debug the code",
+            "debug python code", "fix this python code", "fix this code",
+            "the error is:", "indexerror:", "syntaxerror:", "typeerror:",
+            "fix the error",
+        ]
+        if any(kw in lower for kw in debug_keywords) or lower.startswith("debug this"):
+            return (
+                "debug_code",
+                "Debug and fix the provided code",
+                {"code": raw},
+            )
+
+        # 5. Optimize Code
+        optimize_keywords = [
+            "optimize this python code", "optimize this code", "optimize the code",
+            "speed up this code", "improve this python code", "optimize code",
+        ]
+        if any(kw in lower for kw in optimize_keywords) or lower.startswith("optimize this"):
+            return (
+                "optimize_code",
+                "Optimize the provided code",
+                {"code": raw},
+            )
+
+        return None
+
+    # =========================================================
     # CODE REQUEST DETECTION
     # =========================================================
 
@@ -847,11 +1007,26 @@ IMPORTANT:
         )
 
     # =========================================================
-    # SMART VISUALIZATION DETECTION
+    # NEGATION HANDLING HELPER
     # =========================================================
 
     @staticmethod
+    def _strip_negated_clauses(message: str) -> str:
+        """
+        Removes negated/exclusion clauses from the message so that phrases
+        like 'do not train models, generate charts, or create reports'
+        do not falsely trigger ML, chart, or report flags.
+        """
+        pattern = r"\b(?:do\s+not|don'?t|no|never|without|stop|skip|avoid)\b[^.?!;]*"
+        return re.sub(pattern, "", message or "", flags=re.IGNORECASE)
+
+    # =========================================================
+    # SMART VISUALIZATION DETECTION
+    # =========================================================
+
+    @classmethod
     def _is_smart_visualization_question(
+        cls,
         message: str,
     ) -> bool:
         """
@@ -868,6 +1043,8 @@ IMPORTANT:
         message = (
             message or ""
         ).lower().strip()
+
+        positive_message = cls._strip_negated_clauses(message)
 
         visualization_phrases = [
             "show",
@@ -904,17 +1081,17 @@ IMPORTANT:
         ]
 
         has_visualization = any(
-            phrase in message
+            phrase in positive_message
             for phrase in visualization_phrases
         )
 
         has_grouping = any(
-            phrase in f" {message} "
+            phrase in f" {positive_message} "
             for phrase in grouping_phrases
         )
 
         has_aggregation = any(
-            phrase in message
+            phrase in positive_message
             for phrase in aggregation_phrases
         )
 
@@ -1344,6 +1521,44 @@ IMPORTANT:
         return "bar"
 
     # =========================================================
+    # BUILD DATASET ANALYSIS PLAN
+    # =========================================================
+
+    @staticmethod
+    def _build_analysis_plan(
+        context: AIContext,
+        objective: str = "Perform comprehensive dataset analysis and answer questions",
+    ) -> ExecutionPlan:
+        """
+        Creates a deterministic analysis plan combining:
+        1. analyze_dataset: produces structured profiling, quality metrics, and UI overview.
+        2. data_analysis: produces grounded statistical insights and answers the user's prompt.
+        """
+        tasks = [
+            AITask(
+                id=str(uuid.uuid4()),
+                capability="analyze_dataset",
+                action="Analyze dataset structure, data types, missing values, and descriptive statistics",
+                priority=TaskPriority.HIGH,
+                status=TaskStatus.PENDING,
+                input_data={},
+            ),
+            AITask(
+                id=str(uuid.uuid4()),
+                capability="data_analysis",
+                action="Conduct exploratory analysis, investigate key questions, and derive statistically supported insights",
+                priority=TaskPriority.HIGH,
+                status=TaskStatus.PENDING,
+                input_data={"question": context.message},
+            ),
+        ]
+
+        return ExecutionPlan(
+            objective=objective,
+            tasks=tasks,
+        )
+
+    # =========================================================
     # BUILD DATA QUESTION PLAN
     # =========================================================
 
@@ -1742,8 +1957,9 @@ IMPORTANT:
     # MACHINE LEARNING DETECTION
     # =========================================================
 
-    @staticmethod
+    @classmethod
     def _is_ml_question(
+        cls,
         message: str,
     ) -> bool:
 
@@ -1752,32 +1968,25 @@ IMPORTANT:
         ).lower().strip()
 
         phrases = [
-
             "train",
             "training",
-
             "machine learning",
             "machine-learning",
-
             "model",
-
             "fit model",
             "build model",
-
             "classification",
             "regression",
-
             "predict",
             "prediction",
-
             "forecast",
-
             "evaluate model",
-
         ]
 
+        positive_message = cls._strip_negated_clauses(message)
+
         return any(
-            phrase in message
+            phrase in positive_message
             for phrase in phrases
         )
 
@@ -1785,8 +1994,9 @@ IMPORTANT:
     # VISUALIZATION DETECTION
     # =========================================================
 
-    @staticmethod
+    @classmethod
     def _is_visualization_question(
+        cls,
         message: str,
     ) -> bool:
 
@@ -1795,37 +2005,30 @@ IMPORTANT:
         ).lower().strip()
 
         phrases = [
-
             "plot",
             "chart",
             "graph",
-
             "histogram",
             "scatter",
             "scatter plot",
-
             "bar chart",
             "bar graph",
-
             "line chart",
             "line graph",
-
             "pie chart",
-
             "boxplot",
             "box plot",
-
             "heatmap",
             "heat map",
-
             "visualize",
             "visualization",
             "visualisation",
-
         ]
 
+        positive_message = cls._strip_negated_clauses(message)
+
         return any(
-            phrase in message
+            phrase in positive_message
             for phrase in phrases
         )
 
@@ -1833,8 +2036,9 @@ IMPORTANT:
     # REPORT DETECTION
     # =========================================================
 
-    @staticmethod
+    @classmethod
     def _is_report_question(
+        cls,
         message: str,
     ) -> bool:
 
@@ -1843,24 +2047,20 @@ IMPORTANT:
         ).lower().strip()
 
         phrases = [
-
             "generate a report",
             "generate report",
-
             "create a report",
             "create report",
-
             "make a report",
-
             "dataset report",
             "data report",
-
             "export report",
-
         ]
 
+        positive_message = cls._strip_negated_clauses(message)
+
         return any(
-            phrase in message
+            phrase in positive_message
             for phrase in phrases
         )
 

@@ -88,7 +88,7 @@ export default function ChatArea() {
 
   if (hasRealConversation) {
     return (
-      <div className="chat-area chat-area-conversation">
+      <div className="chat-area">
         <ChatMessages />
       </div>
     );
@@ -97,84 +97,84 @@ export default function ChatArea() {
 
   return (
     <div className="chat-area">
+      <div className="workspace-welcome-scroll h-full min-h-0 w-full flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
+        <div className="workspace-welcome">
 
-      <div className="workspace-welcome">
+          {/* ================================================
+              WELCOME HEADER
+              ================================================ */}
 
-        {/* ================================================
-            WELCOME HEADER
-            ================================================ */}
+          <div className="workspace-welcome-header">
 
-        <div className="workspace-welcome-header">
+            <div className="workspace-ai-pill">
+              <Sparkles size={15} />
+              <span>DataNova AI</span>
+            </div>
 
-          <div className="workspace-ai-pill">
-            <Sparkles size={15} />
-            <span>DataNova AI</span>
+
+            <h1>
+              What will you
+              <br />
+              <span>discover today?</span>
+            </h1>
+
+
+            <p>
+              Analyze, visualize and predict from your data
+              <br className="desktop-break" />
+              using natural language.
+            </p>
+
           </div>
 
 
-          <h1>
-            What will you
-            <br />
-            <span>discover today?</span>
-          </h1>
+          {/* ================================================
+              QUICK ACTION CARDS
+              ================================================ */}
+
+          <div className="workspace-suggestion-grid">
+
+            {suggestions.map(
+              ({
+                icon: Icon,
+                title,
+                description,
+                prompt,
+              }) => (
+
+                <button
+                  key={title}
+                  type="button"
+                  className="workspace-suggestion-card"
+                  onClick={() => sendPrompt(prompt)}
+                >
+
+                  <div className="workspace-suggestion-icon">
+                    <Icon size={21} />
+                  </div>
 
 
-          <p>
-            Analyze, visualize and predict from your data
-            <br className="desktop-break" />
-            using natural language.
-          </p>
+                  <div className="workspace-suggestion-content">
 
-        </div>
+                    <h3>
+                      {title}
+                    </h3>
 
+                    <p>
+                      {description}
+                    </p>
 
-        {/* ================================================
-            QUICK ACTION CARDS
-            ================================================ */}
+                  </div>
 
-        <div className="workspace-suggestion-grid">
+                </button>
 
-          {suggestions.map(
-            ({
-              icon: Icon,
-              title,
-              description,
-              prompt,
-            }) => (
+              )
+            )}
 
-              <button
-                key={title}
-                type="button"
-                className="workspace-suggestion-card"
-                onClick={() => sendPrompt(prompt)}
-              >
-
-                <div className="workspace-suggestion-icon">
-                  <Icon size={21} />
-                </div>
-
-
-                <div className="workspace-suggestion-content">
-
-                  <h3>
-                    {title}
-                  </h3>
-
-                  <p>
-                    {description}
-                  </p>
-
-                </div>
-
-              </button>
-
-            )
-          )}
+          </div>
 
         </div>
-
       </div>
-
     </div>
   );
 }

@@ -1,3 +1,4 @@
+from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -20,9 +21,15 @@ router = APIRouter(
 
 def get_owned_project(
     project_id: int,
-    current_user: User,
+    current_user: Any,
     db: Session,
 ) -> Project:
+    if getattr(current_user, "is_guest", False):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found.",
+        )
+
     project = (
         db.query(Project)
         .filter(
@@ -48,9 +55,15 @@ def get_owned_project(
 )
 def create_project(
     request: ProjectCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: Any = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if getattr(current_user, "is_guest", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Guest sessions cannot create permanent projects. Please sign in or create an account to save your work.",
+        )
+
     project = Project(
         name=request.name.strip(),
         description=request.description,
@@ -69,9 +82,12 @@ def create_project(
     response_model=list[ProjectResponse],
 )
 def list_projects(
-    current_user: User = Depends(get_current_user),
+    current_user: Any = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if getattr(current_user, "is_guest", False):
+        return []
+
     projects = (
         db.query(Project)
         .filter(Project.owner_id == current_user.id)

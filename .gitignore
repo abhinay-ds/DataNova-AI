@@ -11,12 +11,26 @@ dist/
 
 # Environment
 .env
+.env.*
+!.env.example
+!.env.production.example
 
-# Uploads
+# Uploads and Outputs
 uploads/
+backend/uploads/
+outputs/
+backend/outputs/
 
 # Reports
 reports/
+backend/static/reports/
+static/reports/
+
+# Databases (prevent new db tracking)
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
 
 # Logs
 *.log

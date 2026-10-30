@@ -167,11 +167,11 @@ export default function CodeCard({ data }) {
 
     return (
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
         <div className="flex items-center gap-3">
 
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
 
             <Code2 size={20} />
 
@@ -180,14 +180,14 @@ export default function CodeCard({ data }) {
 
           <div>
 
-            <h3 className="font-semibold text-slate-800">
+            <h3 className="font-semibold text-slate-800 dark:text-slate-100">
 
               Generated Code
 
             </h3>
 
 
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
 
               No code content was returned.
 
@@ -210,17 +210,17 @@ export default function CodeCard({ data }) {
 
   return (
 
-    <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
 
       {/* HEADER */}
 
-      <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3">
+      <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/60">
 
 
         <div className="flex items-center gap-3">
 
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
 
             <Code2 size={20} />
 
@@ -229,14 +229,14 @@ export default function CodeCard({ data }) {
 
           <div>
 
-            <h3 className="font-semibold text-slate-800">
+            <h3 className="font-semibold text-slate-800 dark:text-slate-100">
 
               Generated Code
 
             </h3>
 
 
-            <p className="text-xs uppercase tracking-wide text-slate-500">
+            <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
 
               {language}
 
@@ -252,7 +252,7 @@ export default function CodeCard({ data }) {
         <button
           type="button"
           onClick={handleCopy}
-          className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
+          className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
         >
 
           {copied ? (
@@ -284,15 +284,11 @@ export default function CodeCard({ data }) {
 
       {/* CODE */}
 
-      <div className="overflow-x-auto bg-slate-950 p-4">
+      <div className="max-h-[480px] overflow-auto bg-slate-950 p-4 font-mono">
 
-        <pre className="min-w-full whitespace-pre text-sm leading-6 text-slate-100">
+        <pre className="min-w-full whitespace-pre text-xs leading-5 text-slate-100 sm:text-sm sm:leading-6">
 
-          <code>
-
-            {code}
-
-          </code>
+          <code>{code}</code>
 
         </pre>
 
@@ -303,9 +299,9 @@ export default function CodeCard({ data }) {
 
       {explanation && (
 
-        <div className="border-t border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
+        <div className="border-t border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-300">
 
-          <p className="mb-2 font-semibold text-slate-700">
+          <p className="mb-2 font-semibold text-slate-700 dark:text-slate-200">
 
             Explanation
 
@@ -361,7 +357,7 @@ export default function CodeCard({ data }) {
                 children,
               }) => (
 
-                <strong className="font-semibold text-slate-900">
+                <strong className="font-semibold text-slate-900 dark:text-slate-100">
 
                   {children}
 
@@ -374,7 +370,7 @@ export default function CodeCard({ data }) {
                 children,
               }) => (
 
-                <code className="rounded bg-slate-200 px-1 py-0.5 font-mono text-xs text-slate-800">
+                <code className="rounded border border-transparent bg-slate-200 px-1.5 py-0.5 font-mono text-xs text-slate-800 dark:border-slate-700/60 dark:bg-slate-800 dark:text-blue-300">
 
                   {children}
 

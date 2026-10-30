@@ -1,42 +1,20 @@
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.orm import Session
+"""
+DataNova AI Authentication — Dependencies Re-export
+Guarantees consistent authentication, guest handling, and user resolution.
+"""
 
-from app.database import get_db
-from app.models.user import User
-from app.services.jwt_service import decode_access_token
+from app.api.dependencies import (
+    GuestUser,
+    get_current_user,
+    get_current_user_for_refresh,
+    require_registered_user,
+    security,
+)
 
-
-security = HTTPBearer()
-
-
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db),
-) -> User:
-
-    token = credentials.credentials
-
-    user_id = decode_access_token(token)
-
-    if user_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired authentication token.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    user = (
-        db.query(User)
-        .filter(User.id == user_id)
-        .first()
-    )
-
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    return user
+__all__ = [
+    "GuestUser",
+    "get_current_user",
+    "get_current_user_for_refresh",
+    "require_registered_user",
+    "security",
+]

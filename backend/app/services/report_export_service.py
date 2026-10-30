@@ -7,9 +7,16 @@ import html
 from app.core.ai_engine.response import AIResponse
 
 
+from app.core.config import settings
+
+BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
+reports_base = Path(settings.DATA_DIR) if settings.DATA_DIR else BACKEND_DIR
+STATIC_REPORTS_DIR = reports_base / "static" / "reports"
+
+
 class ReportExportService:
 
-    REPORT_DIR = Path("static/reports")
+    REPORT_DIR = STATIC_REPORTS_DIR
 
     @classmethod
     def export_html(

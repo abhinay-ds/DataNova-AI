@@ -10,6 +10,7 @@ import {
   User,
 } from "lucide-react";
 
+import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -65,9 +66,7 @@ const analysisPrompts = [
 function sendPromptToComposer(prompt) {
   window.dispatchEvent(
     new CustomEvent("datanova:prompt", {
-      detail: {
-        prompt,
-      },
+      detail: prompt,
     })
   );
 }
@@ -78,6 +77,11 @@ function sendPromptToComposer(prompt) {
 
 export default function ChatMessages() {
   const { messages } = useChat();
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages?.length]);
 
   // =======================================================
   // EMPTY STATE
@@ -85,7 +89,7 @@ export default function ChatMessages() {
 
   if (!messages || messages.length === 0) {
     return (
-      <div className="flex h-full min-h-0 overflow-y-auto">
+      <div className="chat-messages-scroll-area flex h-full min-h-0 w-full flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
         <div className="mx-auto flex w-full max-w-4xl flex-col justify-center px-4 py-8 sm:px-5 sm:py-10">
 
           {/* =================================================
@@ -238,10 +242,8 @@ export default function ChatMessages() {
   // =======================================================
 
   return (
-    <div className="h-full min-h-0 overflow-y-auto">
-
-      <div className="mx-auto w-full max-w-4xl space-y-5 px-3 py-5 pb-36 sm:space-y-6 sm:px-4 sm:py-6">
-
+    <div className="chat-messages-scroll-area h-full min-h-0 w-full flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
+      <div className="mx-auto w-full max-w-4xl space-y-5 px-3 py-5 pb-8 sm:space-y-6 sm:px-5 sm:py-6 sm:pb-10">
         {messages.map((message, index) => (
           <Message
             key={message.id || index}
@@ -249,8 +251,8 @@ export default function ChatMessages() {
           />
         ))}
 
+        <div ref={messagesEndRef} className="h-px" />
       </div>
-
     </div>
   );
 }

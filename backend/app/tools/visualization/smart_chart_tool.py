@@ -14,8 +14,8 @@ class SmartChartTool(BaseTool):
     def execute(
         self,
         dataset,
-        x: str,
-        y: str,
+        x: str | None = None,
+        y: str | None = None,
         aggregation: str = "mean",
         chart_type: str = "bar",
         **kwargs,
@@ -30,13 +30,13 @@ class SmartChartTool(BaseTool):
         if not x:
             return AIResponse(
                 success=False,
-                message="Grouping column is required.",
+                message="Grouping column (x) is required for smart chart.",
             )
 
         if not y:
             return AIResponse(
                 success=False,
-                message="Metric column is required.",
+                message="Metric column (y) is required for smart chart.",
             )
 
         return VisualizationService.smart_chart(
